@@ -161,10 +161,20 @@ By using ``stream`` option, you can output results to a file.
 For example, you can output logs to ``lineprof.log``.
 
 FIXME & add very simple example
+
 .. code-block:: python
 
     f = open("lineprof.log", "w")
     app = LineProfilerMiddleware(app, stream=f)
+    bottle.run(app=app)
+
+AsyncWrite
+----------
+By using ``async_write`` option, start writer_thread. Requests are not blocked by Writing Stats.(``default=False``)
+
+.. code-block:: python
+
+    app = LineProfilerMiddleware(app, async_write=True)
     bottle.run(app=app)
 
 Links
