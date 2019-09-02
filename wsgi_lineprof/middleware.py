@@ -20,6 +20,7 @@ class LineProfilerMiddleware(object):
                  async_stream=False,  # type: bool
                  accumulate=False,  # type: bool
                  color=True,  # type: bool
+                 skip_access_count=0,  # type: int
                  ):
         # type: (...) -> None
         self.app = app
@@ -40,6 +41,9 @@ class LineProfilerMiddleware(object):
             atexit.register(self._write_stats)
         # Enable colorization only for stdout/stderr
         self.color = color and self.stream in {sys.stdout, sys.stderr}
+        self.skip_access_count = skip_access_count
+        self.access_count = 0
+        self.skip_end = self.skip_access_count == 0
 
     def _write_stats(self):
         # type: () -> None
@@ -52,9 +56,15 @@ class LineProfilerMiddleware(object):
         # type: (WSGIEnvironment, StartResponse) -> Iterable[bytes]
         if not self.accumulate:
             self.profiler.reset()
-        self.profiler.enable()
-        result = self.app(env, start_response)
-        self.profiler.disable()
+        if self.skip_end:
+            self.profiler.enable()
+            result = self.app(env, start_response)
+            self.profiler.disable()
+        else:
+            result = self.app(env, start_response)
+            self.access_count += 1
+            if self.access_count >= self.skip_access_count:
+                self.skip_end = True
 
         if not self.accumulate:
             self._write_stats()
